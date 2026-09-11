@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Heart Risk Triage</title>
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --red: #dc2626;
+    --border: #e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.subtitle { color: var(--muted); margin-top: 0; margin-bottom: 24px; font-size: 0.9rem; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: var(--text);
+  }
+  button {
+    margin-top: 18px;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:hover { opacity: 0.9; }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .result { display: none; }
+  .result.visible { display: block; }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: white;
+  }
+  .badge.low { background: var(--green); }
+  .badge.high { background: var(--red); }
+  .result p { margin: 10px 0 0; }
+  .barra {
+    height: 8px;
+    width: 100%;
+    background: var(--border);
+    border-radius: 999px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+  .barra span { display: block; height: 100%; width: 0; background: var(--accent); }
+  .erro { color: var(--red); font-size: 0.85rem; margin-top: 12px; display: none; }
+  .erro.visible { display: block; }
+  .disclaimer { font-size: 0.75rem; color: var(--muted); margin-top: 24px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Classificação de Doença Cardíaca</h1>
+  <p class="subtitle">Preencha os dados clínicos para consultar o modelo.</p>
+
+  <div class="card">
+    <form id="formulario-paciente">
+      <div class="grid">
+        <div>
+          <label for="Age">Idade (anos)</label>
+          <input id="Age" name="Age" type="number" min="1" max="120" step="1" value="54" required />
+        </div>
+        <div>
+          <label for="RestingBP">Pressão em repouso (mmHg) — opcional</label>
+          <input id="RestingBP" name="RestingBP" type="number" min="1" max="300" step="1" value="130"  />
+        </div>
+        <div>
+          <label for="Cholesterol">Colesterol (mg/dL) — opcional</label>
+          <input id="Cholesterol" name="Cholesterol" type="number" min="1" max="1000" step="1" value="230"  />
+        </div>
+        <div>
+          <label for="MaxHR">Frequência cardíaca máxima (bpm)</label>
+          <input id="MaxHR" name="MaxHR" type="number" min="20" max="250" step="1" value="150" required />
+        </div>
+        <div>
+          <label for="Oldpeak">Depressão do segmento ST (Oldpeak)</label>
+          <input id="Oldpeak" name="Oldpeak" type="number" min="-10" max="10" step="0.1" value="1" required />
+        </div>
+        <div>
+          <label for="Sex">Sexo</label>
+          <select id="Sex" name="Sex">
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+        </div>
+        <div>
+          <label for="ChestPainType">Tipo de dor torácica</label>
+          <select id="ChestPainType" name="ChestPainType">
+            <option value="ASY">Assintomático</option>
+            <option value="TA">Angina típica</option>
+            <option value="ATA">Angina atípica</option>
+            <option value="NAP">Dor não anginosa</option>
+          </select>
+        </div>
+        <div>
+          <label for="FastingBS">Glicemia de jejum acima de 120 mg/dL?</label>
+          <select id="FastingBS" name="FastingBS">
+            <option value="0">Não</option>
+            <option value="1">Sim</option>
+          </select>
+        </div>
+        <div>
+          <label for="RestingECG">ECG em repouso</label>
+          <select id="RestingECG" name="RestingECG">
+            <option value="Normal">Normal</option>
+            <option value="ST">Alteração ST-T</option>
+            <option value="LVH">Hipertrofia ventricular esquerda</option>
+          </select>
+        </div>
+        <div>
+          <label for="ExerciseAngina">Angina induzida por exercício</label>
+          <select id="ExerciseAngina" name="ExerciseAngina">
+            <option value="N">Não</option>
+            <option value="Y">Sim</option>
+          </select>
+        </div>
+        <div>
+          <label for="ST_Slope">Inclinação do segmento ST</label>
+          <select id="ST_Slope" name="ST_Slope">
+            <option value="Up">Ascendente</option>
+            <option value="Flat">Plana</option>
+            <option value="Down">Descendente</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" id="botao-enviar">Classificar</button>
+      <p class="erro" id="mensagem-erro"></p>
+    </form>
+  </div>
+
+  <div class="card result" id="cartao-resultado">
+    <span id="selo" class="badge"></span>
+    <div class="barra"><span id="barra-preenchida"></span></div>
+    <p id="probabilidade"></p>
+    <p id="recomendacao"></p>
+  </div>
+
+  <p class="disclaimer">Projeto acadêmico com 918 registros do Heart Failure Prediction Dataset. Classifica presença de doença cardíaca; não prevê infarto futuro. O escore não é uma probabilidade clínica calibrada e não substitui avaliação médica.</p>
+</div>
+
+<script>
+// Endereco onde a API FastAPI esta rodando.
+const URL_API = "http://localhost:8000/prever";
+
+const formulario = document.getElementById("formulario-paciente");
+const botao = document.getElementById("botao-enviar");
+const mensagemErro = document.getElementById("mensagem-erro");
+const cartaoResultado = document.getElementById("cartao-resultado");
+
+// Medidas opcionais vazias são enviadas como null.
+function lerFormulario() {
+  const bruto = Object.fromEntries(new FormData(formulario).entries());
+  const paciente = {};
+
+  for (const chave in bruto) {
+    paciente[chave] = ["Sex", "ChestPainType", "RestingECG", "ExerciseAngina", "ST_Slope"].includes(chave)
+      ? bruto[chave] : (bruto[chave] === "" ? null : Number(bruto[chave]));
+  }
+
+  return paciente;
+}
+
+/**
+ * Envia o paciente para a API e devolve a resposta ja convertida de JSON.
+ */
+async function consultarApi(paciente) {
+  const resposta = await fetch(URL_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(paciente),
+  });
+
+  if (!resposta.ok) {
+    throw new Error("A API respondeu com o status " + resposta.status);
+  }
+
+  return await resposta.json();
+}
+
+/**
+ * Preenche o cartao de resultado com o que a API devolveu.
+ */
+function mostrarResultado(resultado) {
+  const selo = document.getElementById("selo");
+  selo.textContent = resultado.rotulo_risco;
+  selo.className = "badge " + (resultado.classe_risco === 1 ? "high" : "low");
+
+  const porcentagem = (resultado.probabilidade * 100).toFixed(1);
+  const barra = document.getElementById("barra-preenchida");
+  barra.style.width = porcentagem + "%";
+  barra.style.background =
+    resultado.classe_risco === 1 ? "var(--red)" : "var(--green)";
+
+  document.getElementById("probabilidade").textContent =
+    "Escore do modelo para a classe 1: " + porcentagem + "%";
+  document.getElementById("recomendacao").textContent = resultado.recomendacao;
+
+  cartaoResultado.classList.add("visible");
+}
+
+function mostrarErro(texto) {
+  mensagemErro.textContent = texto;
+  mensagemErro.classList.add("visible");
+  cartaoResultado.classList.remove("visible");
+}
+
+function limparErro() {
+  mensagemErro.classList.remove("visible");
+}
+
+formulario.addEventListener("submit", async (evento) => {
+  evento.preventDefault();
+  limparErro();
+  cartaoResultado.classList.remove("visible");
+
+  botao.disabled = true;
+  botao.textContent = "Avaliando...";
+
+  try {
+    const paciente = lerFormulario();
+    const resultado = await consultarApi(paciente);
+    mostrarResultado(resultado);
+  } catch (erro) {
+    mostrarErro(
+      "Não foi possível consultar a API (" + erro.message + "). " +
+      "Confira se ela está rodando em " + URL_API
+    );
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Classificar";
+  }
+});
+</script>
+</body>
+</html>

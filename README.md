@@ -52,7 +52,7 @@ Resultados acadêmicos deste split, sem validação clínica. O escore não é u
 -- 11 atributos, incluindo idade, sexo, pressão, colesterol, dor torácica e resultados de exames.
 
 # Quem utilizaria e para quê?	
--- Na proposta, profissionais de saúde poderiam consultar uma classificação como informação complementar. A versão atual é um protótipo acadêmico.
+-- É um protótipo acadêmico de apoio à análise de dados cardíacos. O usuário (profissional da saúde) informa características clínicas e recebe uma classificação sobre presença de doença cardíaca, acompanhada do escore do modelo. A proposta é organizar uma consulta ao modelo em uma interface simples, como informação complementar à avaliação profissional.
 
 # O que faz com a classificação?	
 -- Exibe a classe prevista, um indicador visual e o escore do modelo.

@@ -1,4 +1,4 @@
-﻿"""Treina KNN e árvore de decisão e salva somente o vencedor."""
+"""Treina o KNN, avalia no teste e salva o modelo."""
 from pathlib import Path
 
 import joblib
@@ -11,7 +11,6 @@ from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_sp
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-from sklearn.tree import DecisionTreeClassifier
 
 ROOT = Path(__file__).resolve().parent.parent
 NUMERICAS = ['Age', 'RestingBP', 'Cholesterol', 'MaxHR', 'Oldpeak']
@@ -27,7 +26,7 @@ def carregar_dados():
     return dados[NUMERICAS + CATEGORICAS], dados['HeartDisease']
 
 
-def montar_pipeline(classificador):
+def montar_pipeline():
     numericas = Pipeline([
         ('imputacao', SimpleImputer(strategy='median')),
         ('escala', MinMaxScaler()),
@@ -36,41 +35,32 @@ def montar_pipeline(classificador):
         ('numericas', numericas, NUMERICAS),
         ('categoricas', OneHotEncoder(handle_unknown='ignore'), CATEGORICAS),
     ])
-    return Pipeline([('preprocessador', preprocessador), ('modelo', classificador)])
+    return Pipeline([('preprocessador', preprocessador), ('modelo', KNeighborsClassifier())])
 
 
 def main():
     X, y = carregar_dados()
     Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    candidatos = {
-        'KNN': (KNeighborsClassifier(), {
-            'modelo__n_neighbors': [3, 5, 7, 11, 15],
-            'modelo__weights': ['uniform', 'distance'],
-        }),
-        'Árvore de Decisão': (DecisionTreeClassifier(random_state=42), {
-            'modelo__max_depth': [3, 5, 8, None],
-            'modelo__min_samples_leaf': [1, 5, 10],
-        }),
+    parametros = {
+        'modelo__n_neighbors': [3, 5, 7, 11, 15],
+        'modelo__weights': ['uniform', 'distance'],
     }
-    buscas = {}
-    for nome, (modelo, parametros) in candidatos.items():
-        busca = GridSearchCV(montar_pipeline(modelo), parametros, cv=cv,
-                            scoring='balanced_accuracy', n_jobs=2, error_score='raise')
-        busca.fit(Xtr, ytr)
-        buscas[nome] = busca
+    # Escolhe os parâmetros na validação; o teste fica reservado para avaliação.
+    busca = GridSearchCV(montar_pipeline(), parametros, cv=cv,
+                        scoring='balanced_accuracy', n_jobs=2, error_score='raise')
+    busca.fit(Xtr, ytr)
+    previsto = busca.predict(Xte)
 
-    # Escolhe na validação; o teste não participa da escolha do vencedor.
-    vencedor = max(buscas, key=lambda nome: buscas[nome].best_score_)
     print(f'Registros: {len(X)} | Treino: {len(Xtr)} | Teste: {len(Xte)}')
-    print(f'{"Modelo":<20} {"CV balanceada":>14} {"Acurácia teste":>15} {"Recall teste":>13}')
-    for nome, busca in buscas.items():
-        previsto = busca.predict(Xte)
-        print(f'{nome:<20} {busca.best_score_:>14.1%} {accuracy_score(yte, previsto):>15.1%} {recall_score(yte, previsto):>13.1%}')
-        print(f'  Parâmetros: {busca.best_params_}')
-        print(f'  Acurácia balanceada no teste: {balanced_accuracy_score(yte, previsto):.1%}')
-    joblib.dump(buscas[vencedor].best_estimator_, ROOT / 'training/modelo.joblib')
-    print(f'Salvo: {vencedor} -> training/modelo.joblib')
+    print(f'Parâmetros do KNN: {busca.best_params_}')
+    print(f'Acurácia balanceada na validação: {busca.best_score_:.1%}')
+    print(f'Acurácia no teste: {accuracy_score(yte, previsto):.1%}')
+    print(f'Acurácia balanceada no teste: {balanced_accuracy_score(yte, previsto):.1%}')
+    print(f'Recall no teste: {recall_score(yte, previsto):.1%}')
+    joblib.dump(busca.best_estimator_, ROOT / 'training/modelo.joblib')
+    print('KNN salvo em training/modelo.joblib')
+
 
 
 if __name__ == '__main__':
